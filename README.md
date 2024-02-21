@@ -45,3 +45,16 @@ print(out)
 
 # License
 MIT
+
+
+## Citation
+```bibtex
+@misc{mustafa2022multimodal,
+    title={Multimodal Contrastive Learning with LIMoE: the Language-Image Mixture of Experts}, 
+    author={Basil Mustafa and Carlos Riquelme and Joan Puigcerver and Rodolphe Jenatton and Neil Houlsby},
+    year={2022},
+    eprint={2206.02770},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+```
