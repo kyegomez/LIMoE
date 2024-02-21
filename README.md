@@ -9,8 +9,8 @@ Implementation of the "the first large-scale multimodal mixture of experts model
 
 ## usage
 ```python
-
 import torch
+
 from limoe.main import LiMoE
 
 # Text tokens (batch, sequence length)
@@ -33,7 +33,7 @@ model = LiMoE(
     patch_size=16,  # Patch size
     image_size=224,  # Image size
     channels=3,  # Number of image channels
-    dense_encoder_depth=5
+    dense_encoder_depth=5,
 )
 
 # Pass the input tensor through the model and print the output

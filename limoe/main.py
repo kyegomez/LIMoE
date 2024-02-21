@@ -1,15 +1,80 @@
 import torch
-from torch import nn, Tensor
-from zeta.nn import (
-    Attention,
-)
-from swarms_torch import SimpleMoE
+import torch.nn.functional as F
 from einops.layers.torch import Rearrange
-from zeta.nn import OutputHead, threed_to_text
+from swarms_torch import SimpleMoE
+from torch import Tensor, nn
+from zeta.nn import Attention, OutputHead, threed_to_text
 
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
+
+
+def contrastive_loss(
+    output1: Tensor,
+    output2: Tensor,
+    target: Tensor,
+    margin: float = 1.0,
+):
+    """
+    Computes the contrastive loss between two output tensors.
+
+    Args:
+        output1 (Tensor): The first output tensor.
+        output2 (Tensor): The second output tensor.
+        target (Tensor): The target tensor.
+        margin (float, optional): The margin value for the contrastive loss. Defaults to 1.0.
+
+    Returns:
+        Tensor: The computed contrastive loss.
+    """
+    # Compute the pairwise distance of the outputs
+    distance = F.pairwise_distance(output1, output2)
+
+    # Compute the contrastive loss
+    loss_contrastive = torch.mean(
+        (1 - target) * torch.pow(distance, 2)
+        + (target) * torch.pow(torch.clamp(margin - distance, min=0.0), 2)
+    )
+
+    return loss_contrastive
+
+
+class ContrastiveLoss(nn.Module):
+    """
+    Contrastive loss function.
+    Based on: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+    """
+
+    def __init__(self, margin=1.0):
+        super().__init__()
+        self.margin = margin
+
+    def forward(self, output1, output2, target):
+        # Check that inputs are tensors
+        assert isinstance(output1, torch.Tensor), "output1 needs to be a PyTorch Tensor"
+        assert isinstance(output2, torch.Tensor), "output2 needs to be a PyTorch Tensor"
+        assert isinstance(target, torch.Tensor), "target needs to be a PyTorch Tensor"
+
+        # Check that all tensors have the same length
+        assert (
+            output1.shape[0] == output2.shape[0] == target.shape[0]
+        ), "output1, output2, and target need to have the same length"
+
+        # Compute the pairwise distance of the outputs
+        euclidean_distance = F.pairwise_distance(output1, output2)
+
+        # Compute contrastive loss
+        loss_contrastive = torch.mean(
+            (1 - target) * torch.pow(euclidean_distance, 2)
+            + (target)
+            * torch.pow(
+                torch.clamp(self.margin - euclidean_distance, min=0.0),
+                2,
+            )
+        )
+
+        return loss_contrastive
 
 
 class DenseEncoderLayer(nn.Module):
@@ -153,6 +218,9 @@ class LiMoE(nn.Module):
         image_size: int,
         channels: int,
         dense_encoder_depth: int,
+        stride: int = 1,
+        padding: int = 1,
+        kernel_size: int = 3,
         *args,
         **kwargs,
     ):
@@ -170,7 +238,6 @@ class LiMoE(nn.Module):
         self.channels = channels
         self.patch_size = patch_size
         self.dense_encoder_depth = dense_encoder_depth
-        
 
         # Patch utils
         image_height, image_width = pair(image_size)
@@ -180,7 +247,7 @@ class LiMoE(nn.Module):
         # Layers
         self.layers = nn.ModuleList([])
 
-        # Add layers
+        # Add Dense Encoder layers
         for _ in range(depth):
             self.layers.append(
                 DenseEncoderLayer(
@@ -217,9 +284,10 @@ class LiMoE(nn.Module):
         # Norm
         self.norm = nn.LayerNorm(dim)
 
-    def forward(
-        self, x: Tensor = None, image: Tensor = None, *args, **kwargs
-    ):
+        # Average pooling
+        self.avg_pool = nn.AvgPool1d(kernel_size, stride, padding)
+
+    def forward(self, x: Tensor = None, image: Tensor = None, *args, **kwargs):
         """
         Forward pass of the LiMoE module.
 
@@ -249,5 +317,7 @@ class LiMoE(nn.Module):
         for layer in self.layers:
             tokens = layer(t_tensors)
 
+        logits = self.avg_pool(tokens)
+        print(f"average pooling shape: {logits.shape}")
         logits = self.head(tokens)
         return logits

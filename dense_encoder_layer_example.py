@@ -1,4 +1,5 @@
 import torch
+
 from limoe.main import DenseEncoderLayer
 
 # Create a random tensor of shape (1, 64, 512)
