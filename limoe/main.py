@@ -98,18 +98,3 @@ class DenseEncoderLayer(nn.Module):
         x = self.experts(x)
 
         return x
-
-
-# Tensor
-x = torch.randn(1, 64, 512)
-model = DenseEncoderLayer(
-    dim=512,
-    depth=3,
-    heads=8,
-    dim_head=64,
-    num_experts=4,
-    # dim_head = 64,
-    dropout=0.1,
-    ff_mult=4,
-)
-print(model(x))
