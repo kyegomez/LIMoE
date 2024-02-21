@@ -1,9 +1,9 @@
 import torch
 from torch import nn, Tensor
 from zeta.nn import (
-    MixtureOfExperts,
     Attention,
 )
+from swarms_torch import SimpleMoE
 
 
 class DenseEncoderLayer(nn.Module):
@@ -61,14 +61,13 @@ class DenseEncoderLayer(nn.Module):
         gpu = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Experts
-        self.experts = MixtureOfExperts(
-            dim=self.dim,
-            num_experts=self.num_experts,
-            # dim_head=self.dim_head,
-            dropout=self.dropout,
-            ff_mult=ff_mult,
+        self.experts = SimpleMoE(
+            dim,
+            dim * ff_mult,
+            dim,
+            num_experts,
+            ff_mult,
         )
-
         # Attention
         self.attn = Attention(
             dim,
@@ -113,39 +112,4 @@ model = DenseEncoderLayer(
     dropout=0.1,
     ff_mult=4,
 )
-print(model(x).shape)
-
-
-# LiMoE: Linear Mixture of Experts
-# class LiMoE(nn.Module):
-#     def __init__(
-#         self,
-#         dim: int,
-#         depth: int,
-#         num_experts: int,
-#         dim_head: int,
-#         dropout: float,
-#         *args,
-#         **kwargs,
-#     ):
-#         super().__init__()
-#         self.dim = dim
-#         self.depth = depth
-#         self.num_experts = num_experts
-#         self.dim_head = dim_head
-#         self.dropout = dropout
-#         self.heads = self.dim // self.dim_head
-#         self.scale = self.dim_head**-0.5
-
-#     def forward(self, x: Tensor):
-#         # Encoder
-#         for _ in range(self.depth):
-#             x = DenseEncoderLayer(
-#                 dim=self.dim,
-#                 depth=self.depth,
-#                 num_experts=self.num_experts,
-#                 dim_head=self.dim_head,
-#                 dropout=self.dropout,
-#             )(x)
-
-#         return x
+print(model(x))
