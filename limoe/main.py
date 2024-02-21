@@ -79,6 +79,9 @@ class DenseEncoderLayer(nn.Module):
             *args,
             **kwargs,
         )
+        
+        # Norm
+        self.norm = nn.LayerNorm(dim)
 
     def forward(self, x: Tensor):
         """
@@ -91,10 +94,14 @@ class DenseEncoderLayer(nn.Module):
             Tensor: The output tensor.
 
         """
+        x = self.norm(x)
+
         # Attention
         x, _ = self.attn(x)
+        x = self.norm(x)
 
         # Expert
         x = self.experts(x)
+        x = self.norm(x)
 
         return x

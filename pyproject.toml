@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "limoe"
-version = "0.0.1"
+version = "0.0.2"
 description = "LiMoE - Pytorch"
 license = "MIT"
 authors = ["Kye Gomez <kye@apac.ai>"]
@@ -26,6 +26,8 @@ python = "^3.6"
 zetascale = "*"
 torch = "*"
 torchvision = "*"
+einops = "*"
+swarms-torch = "*"
 
 
 [tool.poetry.group.lint.dependencies]
